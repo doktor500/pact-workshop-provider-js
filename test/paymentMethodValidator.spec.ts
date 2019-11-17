@@ -1,8 +1,9 @@
+import { PaymentMethodRepository } from "../src/paymentMethodRepository";
 import { PaymentMethodValidator } from "../src/paymentMethodValidator";
 
 describe("Payment Method Validator", () => {
   it.each`
-    paymentMethod              | isValid
+    paymentMethod              | status
     ${"1234123412341234"}      | ${"valid"}
     ${"1111 2222 3333 4444"}   | ${"valid"}
     ${"1111 2222 3333 444B"}   | ${"invalid"}
@@ -10,8 +11,17 @@ describe("Payment Method Validator", () => {
     ${"1111 2222 3333"}        | ${"invalid"}
     ${""}                      | ${"invalid"}
     ${undefined}               | ${"invalid"}
-    `("payment method ${paymentMethod} should be ${isValid}", ({ paymentMethod, isValid }) => {
-    const paymentMethodValidator = new PaymentMethodValidator();
-    expect(paymentMethodValidator.validate(paymentMethod)).toEqual(isValid);
+    ${"9999 9999 9999 9999"}   | ${"fraud"}
+    `("payment method ${paymentMethod} should be ${status}", async ({ paymentMethod, status }) => {
+
+    const isFraud = (status === "fraud");
+    const paymentMethodRepository = {
+      isBlackListed: jest.fn().mockReturnValue(isFraud),
+      blackList: jest.fn()
+    } as PaymentMethodRepository;
+
+    const paymentMethodValidator = new PaymentMethodValidator(paymentMethodRepository);
+    const validationResult = await paymentMethodValidator.validate(paymentMethod);
+    expect(validationResult).toEqual(status);
   });
 });

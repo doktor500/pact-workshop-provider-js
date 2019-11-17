@@ -1,14 +1,25 @@
+import { PaymentMethodRepository } from "./paymentMethodRepository";
+
 const PAYMENT_METHOD_LENGTH = 16;
 
 enum PaymentMethodStatus {
   Valid = "valid",
   Invalid = "invalid",
+  Fraud = "fraud"
 }
 
 export class PaymentMethodValidator {
-  public validate(paymentMethod: string): string {
+  private readonly paymentMethodRepository: PaymentMethodRepository;
+
+  constructor(paymentMethodRepository: PaymentMethodRepository) {
+    this.paymentMethodRepository = paymentMethodRepository;
+  }
+
+  public async validate(paymentMethod: string): Promise<string> {
     const sanitizedPaymentMethod = this.sanitize(paymentMethod);
     const isValid = this.isNumeric(sanitizedPaymentMethod) && this.hasValidLength(sanitizedPaymentMethod);
+    const isBlackListed = await this.paymentMethodRepository.isBlackListed(sanitizedPaymentMethod);
+    if (isBlackListed) return PaymentMethodStatus.Fraud;
     return isValid ? PaymentMethodStatus.Valid : PaymentMethodStatus.Invalid;
   }
 
