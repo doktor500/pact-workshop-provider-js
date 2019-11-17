@@ -1,47 +1,53 @@
-### Pre-Requirements
+### Provider Step 1 (Verifying an existing contract)
 
-- Fork this github repository into your account (You will find a "fork" icon on the top right corner)
-- Clone the forked repository that exists in **your github account** into your local machine
+When we previously ran (in the consumer) the `test/payments/paymentServiceClient.spec.ts` test, it passed, but it also 
+generated a `pacts/paymentserviceclient-paymentservice.json` pact file that we can use to validate our assumptions in 
+the provider side.
 
-The directory structure needs to be as follows (both projects need to be cloned in the same parent directory):
+Pact can verify the provider against the generated pact file. It can get the pact file from any URL (like a URL
+generated from the last successful CI build), but in this case, we are just going to use the local file for now.
 
-```bash
-drwxr-xr-x - user  7 Jun 17:56 pact-workshop-consumer-js
-drwxr-xr-x - user  7 Jun 18:01 pact-workshop-provider-js
+Run `yarn add -D @pact-foundation/pact` and create this test file `test/paymentService.spec.ts` with the
+following content:
+
+```typescript
+import { Verifier } from "@pact-foundation/pact";
+import * as path from "path";
+const server = require("../src/server");
+
+describe("Payment service", () => {
+    const SERVER_HOST = "localhost";
+    const SERVER_PORT = 4567;
+
+    it("validates the expectations Payment service client", async () => {
+        const options = {
+            pactUrls: [
+                path.resolve(
+                    process.cwd(),
+                    "../pact-workshop-consumer-js/pacts/paymentserviceclient-paymentservice.json"
+                )
+            ],
+            provider: "PaymentService",
+            providerBaseUrl: `http://${SERVER_HOST}:${SERVER_PORT}`,
+        };
+
+        server.listen(SERVER_PORT);
+
+        await new Verifier(options).verifyProvider();
+    }, 10000);
+});
 ```
 
-### Requirements
+In the `pact-workshop-provider-js` directory run `yarn test`. You should see the test failing, because the provider 
+is not compatible with the contract that the consumer has defined. Fix the implementation in `pact-workshop-provider-js`
+in order for the provider become compatible with the contract. Run `yarn test` in the `pact-workshop-provider-js` until
+you see all the tests green. 
 
-- Nodejs v12.4+
-- Yarn
+Once all the tests are green, you have successfully verified your first contract, congratulations!
 
-### Provider Step 0 (Setup)
+You can run `yarn start` both in the `pact-workshop-consumer-js` and `pact-workshop-provider-js` directories, use a 16
+digit credit card number and see a successful validation of the payment method.
 
-#### NodeJs
-
-Check your nodejs version with `node --version`
-
-If you need to install node v12.4.0 or greater follow the instructions on [nvm](https://github.com/nvm-sh/nvm)
-
-If you need to install yarn `npm install -g yarn`
-
-### Install dependencies
-
-- Navigate to the `pact-workshop-provider-js` directory and execute `yarn`
-
-### Run the tests
-
-- Execute `yarn test`
-
-Get familiarised with the code
-
-![System diagram](resources/system-diagram.png "System diagram")
-
-There are two microservices in this system. A `consumer` and a `provider` (this repository).
-
-The "provider" is a PaymentService that validates if a credit card number is valid in the context of that system.
-
-The "consumer" only makes requests to PaymentService to verify payment methods.
-
-Navigate to the directory in where you checked out `pact-workshop-consumer-js`, run `git checkout consumer-step1` and
-follow the instructions in the Consumers' readme file
+Navigate to the directory in where you checked out `pact-workshop-consumer-js`, run
+`git clean -df && git checkout . && git checkout consumer-step2` and follow the instructions in the Consumers' readme
+file

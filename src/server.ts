@@ -11,7 +11,7 @@ app.use(cors());
 app.get("/validate-payment-method/:paymentMethod", (request, response) => {
   const validationResult = paymentMethodValidator.validate(request.params.paymentMethod);
   response.setHeader("Content-Type", "application/json");
-  response.end(JSON.stringify({ state: validationResult }));
+  response.end(JSON.stringify({ status: validationResult }));
 });
 
 module.exports = app;

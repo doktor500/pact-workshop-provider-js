@@ -26,6 +26,7 @@
     "clearMocks": true
   },
   "devDependencies": {
+    "@pact-foundation/pact": "^9.5.0",
     "@types/express": "^4.17.2",
     "@types/jest": "^24.0.22",
     "@types/node": "^12.12.14",
