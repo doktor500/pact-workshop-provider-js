@@ -1,21 +1,34 @@
 import { Verifier } from "@pact-foundation/pact";
-import * as path from "path";
+import { execSync } from "child_process";
+
+import paymentMethodRepository from "../src/paymentMethodRepository";
+
 const server = require("../src/server");
+const provider = "PaymentService";
+
+const gitCommit = execSync("git rev-parse HEAD").toString().trim();
+const gitBranch = execSync("git rev-parse --abbrev-ref HEAD").toString().trim();
 
 describe("Payment service", () => {
-    const SERVER_HOST = "localhost";
+    const HOST = "localhost";
     const SERVER_PORT = 4567;
+    const BROKER_PORT = 8000;
 
     it("validates the expectations Payment service client", async () => {
         const options = {
-            pactUrls: [
-                path.resolve(
-                    process.cwd(),
-                    "../pact-workshop-consumer-js/pacts/paymentserviceclient-paymentservice.json"
-                )
-            ],
-            provider: "PaymentService",
-            providerBaseUrl: `http://${SERVER_HOST}:${SERVER_PORT}`,
+            consumerVersionTag: process.env.CONSUMER_VERSION_TAG,
+            pactBrokerToken: process.env.PACT_BROKER_TOKEN,
+            pactBrokerUrl: process.env.PACT_BROKER_BASE_URL || `http://${HOST}:${BROKER_PORT}`,
+            provider,
+            providerBaseUrl: `http://${HOST}:${SERVER_PORT}`,
+            providerVersion: gitCommit,
+            providerVersionTag: gitBranch,
+            publishVerificationResult: process.env.PUBLISH_VERIFICATION_RESULTS === "true",
+            stateHandlers: {
+                "fraudulent payment method": () => {
+                    return paymentMethodRepository.blackList("9999999999999999");
+                }
+            }
         };
 
         server.listen(SERVER_PORT);
